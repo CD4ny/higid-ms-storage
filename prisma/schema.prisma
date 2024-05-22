@@ -15,7 +15,7 @@ datasource db {
 
 model File {
   id        Int      @id @default(autoincrement())
-  name      String
+  name      String   @unique // Nombre del archivo
   path      String
   mimeType  String // Tipo MIME del archivo (por ejemplo, "image/jpeg", "text/plain")
   size      Int?

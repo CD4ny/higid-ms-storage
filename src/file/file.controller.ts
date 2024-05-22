@@ -8,25 +8,49 @@ import {
   Param,
   HttpStatus,
   HttpException,
+  Get,
+  Response,
+  Req,
+  UseGuards,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { Response as IResponse, Request } from 'express';
 import { diskStorage } from 'multer';
 import { join } from 'path';
 import { unlinkSync, existsSync } from 'fs';
 
 import { FileService } from './file.service';
-import { UploadFileDto } from './dto/upload-file.dto';
 import { DeleteFilesDto } from './dto/delete-files.dto';
+import { AuthGuard } from 'src/auth.guard';
 
-@Controller('file')
+@UseGuards(AuthGuard)
+@Controller()
 export class FileController {
   constructor(private readonly fileService: FileService) {}
+
+  @Get('video/:name')
+  streamVideo(
+    @Param('name') name: string,
+    @Response() response: IResponse,
+    @Req() request: Request,
+  ) {
+    this.fileService.streamVideo(name, response, request);
+  }
+
+  @Get('image/:name')
+  async streamImage(
+    @Param('name') name: string,
+    @Req() request: Request,
+    @Response() response: IResponse,
+  ) {
+    await this.fileService.streamImage(name, request, response);
+  }
 
   @Post()
   @UseInterceptors(
     FileInterceptor('file', {
       storage: diskStorage({
-        destination: './public/uploads',
+        destination: './uploads/images',
         filename: function (req, file, cb) {
           const fieldNameSplit = file.originalname.split('.');
           const ext = fieldNameSplit.pop();
@@ -41,33 +65,32 @@ export class FileController {
   )
   async uploadFile(
     @UploadedFile() file: Express.Multer.File,
-    @Body() uploadFileDto: UploadFileDto,
+    @Req() req: Request,
   ) {
-    const filePublicPathSpit = file.path.split('/');
-    filePublicPathSpit.shift();
-    const filePublicPath = filePublicPathSpit.join('/');
+    const data = req.body;
+    if (!req['user']?.id)
+      throw new HttpException('Must provide user id', HttpStatus.NOT_FOUND);
+
+    if (!file) return { data };
 
     await this.fileService.create({
       name: file.filename,
-      path: filePublicPath,
+      path: 'image/' + file.filename,
       mimeType: file.mimetype,
       size: file.size,
-      owner: uploadFileDto.userId,
+      owner: req['user']?.id,
     });
 
     return {
       message: 'Archivo cargado exitosamente',
-      filePath: filePublicPath,
-      fileName: file.filename,
-      uploadFileDto,
+      data: { ...data, filePath: 'image/' + file.filename },
     };
   }
 
   @Delete(':file')
   deleteFile(@Param('file') fileName: string) {
     try {
-      // todo: ver como acceder a la carpeta public
-      const filePath = join(__dirname, '../..', 'public', 'uploads', fileName);
+      const filePath = join(__dirname, '../..', 'uploads', fileName);
 
       if (!existsSync(filePath)) {
         throw new HttpException('El archivo no existe', HttpStatus.NOT_FOUND);
@@ -93,9 +116,8 @@ export class FileController {
   @Delete()
   deleteFiles(@Body() deleteFilesDto: DeleteFilesDto) {
     try {
-      // todo: ver como acceder a la carpeta public
       deleteFilesDto.filesNames.forEach((fileName) => {
-        const path = join(__dirname, '../..', 'public', 'uploads', fileName);
+        const path = join(__dirname, '../..', 'uploads', fileName);
 
         if (existsSync(path)) {
           unlinkSync(path);
