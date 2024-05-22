@@ -20,14 +20,14 @@ export class FileService {
     });
   }
 
-  public streamImage(name: string, request: Request, response: Response) {
+  public async streamImage(name: string, request: Request, response: Response) {
     const userId = request['user']?.id;
 
     if (!userId) {
       throw new BadRequestException('Must provide user id');
     }
 
-    const isValidImage = this.isValidFile(name, userId, 'image');
+    const isValidImage = await this.isValidFile(name, userId, 'image');
 
     if (!isValidImage) {
       throw new NotFoundException('La imagen no existe');
@@ -39,14 +39,14 @@ export class FileService {
     return response.sendFile(filePath);
   }
 
-  public streamVideo(name: string, response: Response, request: Request) {
+  public async streamVideo(name: string, response: Response, request: Request) {
     const userId = request['user']?.id;
 
     if (!userId) {
       throw new BadRequestException('Must provide user id');
     }
 
-    const isValidVideo = this.isValidFile(name, userId, 'video');
+    const isValidVideo = await this.isValidFile(name, userId, 'video');
 
     if (!isValidVideo) {
       throw new NotFoundException('El video no existe');
@@ -79,11 +79,15 @@ export class FileService {
     stream.pipe(response);
   }
 
-  private isValidFile(name: string, id: string, type: 'image' | 'video') {
-    const file = this.prisma.file.findFirst({
+  private async isValidFile(
+    name: string,
+    owner: string,
+    type: 'image' | 'video',
+  ) {
+    const file = await this.prisma.file.findFirst({
       where: {
         name,
-        owner: id,
+        owner,
       },
     });
 

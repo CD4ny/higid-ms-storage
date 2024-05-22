@@ -88,7 +88,7 @@ export class FileController {
   }
 
   @Delete(':file')
-  deleteFile(@Param('file') fileName: string) {
+  async deleteFile(@Param('file') fileName: string) {
     try {
       const filePath = join(__dirname, '../..', 'uploads', fileName);
 
