@@ -9,6 +9,13 @@ async function bootstrap() {
 
   // Todo - Add the whitelist of the allowed origins
   app.enableCors();
+  // TODO poner solicitudes de escritura solo del host del gateway y ponerle solo lectura al frontend
+  // app.enableCors({
+  //   origin: 'http://tu-dominio-especifico.com', // Reemplaza esto con tu dominio específico
+  //   methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE'],
+  //   allowedHeaders: ['Content-Type', 'Authorization'],
+  //   credentials: true,
+  // });
 
   app.useGlobalPipes(
     new ValidationPipe({

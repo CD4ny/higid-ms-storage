@@ -1,5 +1,7 @@
 import {
   BadRequestException,
+  HttpException,
+  HttpStatus,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -39,17 +41,59 @@ export class FileService {
     return response.sendFile(filePath);
   }
 
-  public async streamVideo(name: string, response: Response, request: Request) {
-    const userId = request['user']?.id;
+  // public async streamVideo(name: string, response: Response, request: Request) {
+  //   const userId = request['user']?.id;
 
-    if (!userId) {
-      throw new BadRequestException('Must provide user id');
-    }
+  //   if (!userId) {
+  //     throw new BadRequestException('Must provide user id');
+  //   }
+
+  //   const isValidVideo = await this.isValidFile(name, userId, 'video');
+
+  //   if (!isValidVideo) {
+  //     throw new HttpException('El video no existe', HttpStatus.NOT_FOUND);
+  //   }
+
+  //   const { range } = request.headers;
+
+  //   if (!range) {
+  //     throw new NotFoundException('range not found');
+  //   }
+
+  //   const path = `uploads/videos/${name}`;
+  //   const videoSize = statSync(path).size;
+  //   const chunksize = 1 * 1e6;
+  //   const start = Number(range.replace(/\D/g, ''));
+  //   const end = Math.min(start + chunksize, videoSize - 1);
+  //   const contentLength = end - start + 1;
+
+  //   const headers = {
+  //     'Content-Range': `bytes ${start}-${end}/${videoSize}`,
+  //     'Accept-Ranges': 'bytes',
+  //     'Content-Length': contentLength,
+  //     'Content-Type': 'video/mp4',
+  //   };
+
+  //   response.writeHead(206, headers);
+
+  //   const stream = createReadStream(path, { start, end });
+
+  //   stream.pipe(response);
+  // }
+
+  public async streamVideoWithToken(
+    name: string,
+    token: string,
+    response: Response,
+    request: Request,
+  ) {
+    if (!token) throw new BadRequestException('Must provide token');
+    const userId = request['user']?.id;
 
     const isValidVideo = await this.isValidFile(name, userId, 'video');
 
     if (!isValidVideo) {
-      throw new NotFoundException('El video no existe');
+      throw new HttpException('El video no existe', HttpStatus.NOT_FOUND);
     }
 
     const { range } = request.headers;
